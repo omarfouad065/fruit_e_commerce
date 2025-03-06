@@ -8,6 +8,7 @@ import 'package:fruit_e_commerce/core/utils/app_keys.dart';
 import 'package:fruit_e_commerce/core/widgets/custom_button.dart';
 import 'package:fruit_e_commerce/features/checkout/domain/entities/order_entity.dart';
 import 'package:fruit_e_commerce/features/checkout/domain/entities/paypal_payment_entity/paypal_payment_entity.dart';
+import 'package:fruit_e_commerce/features/checkout/presentation/manger/add_order_cubit/add_order_cubit.dart';
 import 'package:fruit_e_commerce/features/checkout/presentation/views/widgets/checkout_steps.dart';
 import 'package:fruit_e_commerce/features/checkout/presentation/views/widgets/checkout_steps_page_view.dart';
 
@@ -54,6 +55,24 @@ class _CheckoutViewBodyState extends State<CheckoutViewBody> {
         children: [
           const SizedBox(height: 20),
           CheckoutSteps(
+            onTap: (index) {
+              if (currentPageIndex == 0) {
+                pageController.animateToPage(index,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeIn);
+              } else if (index == 1) {
+                var orderEntity = context.read<OrderEntity>();
+                if (orderEntity.payWithCash != null) {
+                  pageController.animateToPage(index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeIn);
+                } else {
+                  showBar(context, 'يرجي تحديد طريقه الدفع');
+                }
+              } else {
+                _handleAddressValidation();
+              }
+            },
             pageController: pageController,
             currentPageIndex: currentPageIndex,
           ),
@@ -120,6 +139,8 @@ class _CheckoutViewBodyState extends State<CheckoutViewBody> {
     var orderEntity = context.read<OrderEntity>();
     PaypalPaymentEntity paypalPaymentEntity =
         PaypalPaymentEntity.fromEntity(orderEntity);
+
+    var addOrderCubit = context.read<AddOrderCubit>();
     log(paypalPaymentEntity.toJson().toString());
     Navigator.of(context).push(MaterialPageRoute(
       builder: (BuildContext context) => PaypalCheckoutView(
@@ -130,7 +151,7 @@ class _CheckoutViewBodyState extends State<CheckoutViewBody> {
         note: "Contact us for any questions on your order.",
         onSuccess: (Map params) async {
           Navigator.pop(context);
-          showBar(context, 'تمت عملية الدفع بنجاح');
+          addOrderCubit.addOrder(order: orderEntity);
         },
         onError: (error) {
           Navigator.pop(context);
